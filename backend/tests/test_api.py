@@ -264,10 +264,25 @@ def test_full_pipeline_flow(client: TestClient, auth_headers: dict[str, str]) ->
     r = client.post(f"/api/encounters/{enc_id}/export-fhir", headers=h)
     assert r.status_code == 200, r.text
     exports = r.json()
-    assert any(
-        e["resource_type"] == "DocumentReference" and e["fhir_version"] == "R5" for e in exports
+    doc_ref = next(
+        (e for e in exports if e["resource_type"] == "DocumentReference"), None
     )
-    assert "Patient/patient-1" in exports[0]["json_text"]
+    assert doc_ref is not None and doc_ref["fhir_version"] == "R5"
+    assert "Patient/patient-1" in doc_ref["json_text"]
+    # §8.4: approved codes (2 were suggested + approved) -> R4 Conditions.
+    conditions = [e for e in exports if e["resource_type"] == "Condition"]
+    assert len(conditions) == 2
+    assert all(e["fhir_version"] == "R4" for e in conditions)
+    # Each Condition validates as an R4B resource and carries the ICD-10-CM code.
+    from fhir.resources.R4B.condition import Condition as R4Condition
+
+    for c in conditions:
+        cond = R4Condition(**c["resource"])
+        assert cond.subject.reference == "Patient/patient-1"
+        assert cond.encounter.reference == "Encounter/enc-1"
+        coding = cond.code.coding[0]
+        assert coding.system == "http://hl7.org/fhir/sid/icd-10-cm"
+        assert coding.code in {"E11.9", "E66.9"}
 
     # 10. audit trail covers the whole flow
     r = client.get(f"/api/encounters/{enc_id}/audit", headers=h)

@@ -10,6 +10,7 @@ Engines are injected (see deps.py) so the full flow is exercisable with fakes.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import uuid4
 
@@ -331,6 +332,8 @@ class PipelineService:
 
     # --- FHIR export (gated; Phase 4 adds Condition/Claim) ------------------
     def export_fhir(self, encounter_id: str) -> list[dict[str, Any]]:
+        from clin_core_glue.fhir_codes import codes_to_conditions
+
         self._require_approvals(encounter_id)
         enc = self._require_encounter(encounter_id)
         patient = PatientRepo(self.s).get(enc.patient_id)
@@ -350,7 +353,39 @@ class PipelineService:
             audit=self._audit(AuditAction.FHIR_EXPORT, AuditActor.USER),
         )
         exports.append({"resource_type": "DocumentReference", "fhir_version": "R5"})
-        # Phase 4: map approved CodeSuggestion -> R4 Condition/Claim here.
+
+        # §8.4: map approved CodeSuggestions -> validated R4 Condition resources.
+        # Only approved codes are exported (the gate already required codes
+        # approval when codes exist). Nothing is fabricated — the ICD-10-CM
+        # codes come from S3; patient/encounter refs from the encounter.
+        code_rows = CodeRepo(self.s).get_by_encounter(encounter_id)
+        approved = [r for r in code_rows if r.approved]
+        if approved:
+            suggestions = [
+                {
+                    "code": r.code,
+                    "description": r.description,
+                    "confidence": r.confidence,
+                    "evidence": r.evidence,
+                    "rank": r.rank,
+                }
+                for r in approved
+            ]
+            patient_ref = patient.patient_ref if patient else enc.encounter_ref
+            conditions = codes_to_conditions(
+                suggestions, patient_ref=patient_ref, encounter_ref=enc.encounter_ref
+            )
+            for cond in conditions:
+                FhirExportRepo(self.s).save(
+                    encounter_id=encounter_id,
+                    resource_type="Condition",
+                    fhir_version="R4",
+                    resource=cond,
+                    json_text=json.dumps(cond),
+                    audit=self._audit(AuditAction.FHIR_EXPORT, AuditActor.USER),
+                )
+                exports.append({"resource_type": "Condition", "fhir_version": "R4"})
+
         EncounterRepo(self.s).update_status(
             encounter_id, EncounterStatus.EXPORTED, self._audit(AuditAction.FHIR_EXPORT)
         )
