@@ -27,3 +27,6 @@ out/
 .DS_Store
 .idea/
 .vscode/
+
+# Internal planning notes — not part of the public-facing repo
+.pi/

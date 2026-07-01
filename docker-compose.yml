@@ -40,11 +40,13 @@ services:
     environment:
       # Postgres (matches the db service above).
       DATABASE_URL: postgresql+psycopg://clin:clin@db:5432/clin_doc
-      # Cloud LLM key (shared by S1/S2/S3). Set in .env — never commit.
+      # Cloud LLM key (shared by S1/S2/S3). Set in .env — never commit. This is
+      # just the key for whichever provider LLM_MODEL/MODEL below select.
       API_KEY: ${API_KEY:-}
-      # S1 / clinical_core + B1 referral generation.
+      # S1 / clinical_core + B1 referral generation. LiteLLM "<provider>/<model>"
+      # string — not locked to Claude; override in .env for openai/gemini/ollama/etc.
       LLM_MODEL: ${LLM_MODEL:-anthropic/claude-opus-4-8}
-      # S3 coder (bumped off the stale §11 default before Phase 5).
+      # S3 coder. Same LiteLLM "<provider>/<model>" convention as LLM_MODEL.
       MODEL: ${MODEL:-anthropic/claude-sonnet-5}
       # S2 (mask needs no key).
       PHI_HASH_KEY: ${PHI_HASH_KEY:-}

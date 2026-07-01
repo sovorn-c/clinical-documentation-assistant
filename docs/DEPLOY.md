@@ -51,9 +51,9 @@ bundled R4 fixture), then starts uvicorn. The frontend proxies `/api/*` and
 
 | Variable | Used by | Notes |
 |---|---|---|
-| `API_KEY` | S1, S2, S3 (shared) | Cloud LLM key (LiteLLM). **Required** for codes/summary/referral. |
-| `LLM_MODEL` | S1 / clinical_core, B1 referral | Default `anthropic/claude-opus-4-8`. |
-| `MODEL` | S3 coder | Bumped off the stale §11 default to `anthropic/claude-sonnet-5`. |
+| `API_KEY` | S1, S2, S3 (shared) | Cloud LLM key (LiteLLM). **Required** for codes/summary/referral. Whatever key matches the provider in `LLM_MODEL`/`MODEL` below. |
+| `LLM_MODEL` | S1 / clinical_core, B1 referral | LiteLLM `"<provider>/<model>"` string — not Claude-locked (e.g. `openai/gpt-5`, `gemini/gemini-2.5-pro`, `ollama/llama3`). Default `anthropic/claude-opus-4-8`. |
+| `MODEL` | S3 coder | Same LiteLLM `"<provider>/<model>"` convention as `LLM_MODEL`. Bumped off the stale §11 default to `anthropic/claude-sonnet-5`. |
 | `PHI_HASH_KEY` | S2 | Only for `hash`/`surrogate`; `mask` (the default) needs none. |
 | `PHI_REGIONS` | S2 | Phone-region rules (`NZ,AU`). |
 | `DATABASE_URL` | backend | `postgresql+psycopg://…`. Defaults to SQLite for bare local dev. |

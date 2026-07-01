@@ -204,7 +204,11 @@ preferred path so the demo does real transcription.
 | `PHI_REGIONS` | S2 | Phone-region rules (`NZ,AU`) |
 | `SCRIBE_AUDIO_SOURCE` | M1 (local dev) | `file` (cloud uses faster-whisper via B1 adapter) |
 
-See `.env.example` for the full template.
+`LLM_MODEL`/`MODEL` are LiteLLM `"<provider>/<model>"` strings, not a Claude
+lock-in — any LiteLLM-supported provider works (`openai/gpt-5`,
+`gemini/gemini-2.5-pro`, a local `ollama/...` with no `API_KEY`, etc.); the
+`anthropic/...` values are just this repo's default. See `.env.example` for
+the full template.
 
 ## 10. Phase 0 acceptance
 
