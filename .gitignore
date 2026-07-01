@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Env / secrets
+.env
+*.local
+
+# Engine runtime artifacts (models, indexes, dbs, uploaded audio)
+data/
+*.db
+chroma/
+uploads/
+
+# Node / frontend
+node_modules/
+.next/
+out/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

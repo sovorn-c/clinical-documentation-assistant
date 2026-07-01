@@ -1,0 +1,100 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-1",
+        "name": [{"given": ["Jane"], "family": "Doe"}],
+        "gender": "female",
+        "birthDate": "1980-05-15"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "enc-1",
+        "status": "finished",
+        "class": {"code": "AMB"},
+        "period": {"start": "2026-06-01"},
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "185349003",
+                "display": "Encounter for check up"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "cond-1",
+        "clinicalStatus": {"coding": [{"code": "active"}]},
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "73211009",
+              "display": "Diabetes mellitus"
+            }
+          ]
+        },
+        "onsetDateTime": "2022-03-01"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "med-1",
+        "status": "active",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "860975",
+              "display": "Metformin 500mg"
+            }
+          ]
+        },
+        "authoredOn": "2022-04-01",
+        "dosageInstruction": [{"text": "1 tablet twice daily"}]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-1",
+        "code": {
+          "coding": [
+            {"system": "http://loinc.org", "code": "2339-0", "display": "Glucose"}
+          ]
+        },
+        "valueQuantity": {"value": 180, "unit": "mg/dL"},
+        "effectiveDateTime": "2026-06-01"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "id": "allergy-1",
+        "clinicalStatus": {"coding": [{"code": "active"}]},
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "387517004",
+              "display": "Penicillin"
+            }
+          ]
+        },
+        "reaction": [{"manifestation": [{"text": "Rash"}]}]
+      }
+    }
+  ]
+}

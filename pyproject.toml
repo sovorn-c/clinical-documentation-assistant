@@ -1,0 +1,19 @@
+[project]
+name = "clinical-documentation-assistant"
+version = "0.1.0"
+description = "Clinical Documentation Assistant (B1) — audio to FHIR, clinician in the loop."
+requires-python = ">=3.11,<3.13"
+
+[tool.uv.workspace]
+members = ["backend", "packages/clin_core_glue"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+docstring-code-format = true

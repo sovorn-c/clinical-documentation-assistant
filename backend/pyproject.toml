@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clin-doc-backend"
+version = "0.1.0"
+description = "FastAPI backend orchestrating the clinical documentation pipeline (B1)."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "fhir.resources>=8.0",
+  # Upstream engines, as local path deps (execute-plan §7).
+  "ai-ambient-scribe",
+  "phi-deidentifier",
+  "auto-medical-coder",
+  "fhir-clinical-summarizer",
+  # B1's net-new wiring (execute-plan §8).
+  "clin-core-glue",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.27",
+  "ruff>=0.5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["clin_doc"]
+
+[tool.uv.sources]
+ai-ambient-scribe = { path = "../../ai-ambient-scribe", editable = true }
+phi-deidentifier = { path = "../../phi-deidentifier", editable = true }
+auto-medical-coder = { path = "../../auto-medical-coder", editable = true }
+fhir-clinical-summarizer = { path = "../../fhir-clinical-summarizer", editable = true }
+clin-core-glue = { workspace = true }
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra -q"
+filterwarnings = [
+  "ignore::DeprecationWarning:litellm.*",
+  "ignore::pydantic.warnings.PydanticDeprecatedSince20",
+]
