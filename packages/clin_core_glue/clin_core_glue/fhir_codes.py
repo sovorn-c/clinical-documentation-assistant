@@ -27,9 +27,7 @@ if TYPE_CHECKING:
     from auto_medical_coder import CodeSuggestion
 
 _ICD10CM = "http://hl7.org/fhir/sid/icd-10-cm"
-_CLINICAL_ACTIVE = (
-    "http://terminology.hl7.org/CodeSystem/condition-clinical"
-)
+_CLINICAL_ACTIVE = "http://terminology.hl7.org/CodeSystem/condition-clinical"
 _CLAIM_TYPE = "http://terminology.hl7.org/CodeSystem/claim-type"
 _CLAIM_PRIORITY = "http://terminology.hl7.org/CodeSystem/processpriority"
 
@@ -61,9 +59,7 @@ def codes_to_conditions(
         description = _field(s, "description")
         body: dict[str, Any] = {
             "id": f"cond-{encounter_ref or patient_ref}-{_slug(code)}",
-            "clinicalStatus": {
-                "coding": [{"system": _CLINICAL_ACTIVE, "code": "active"}]
-            },
+            "clinicalStatus": {"coding": [{"system": _CLINICAL_ACTIVE, "code": "active"}]},
             "code": {
                 "coding": [
                     {
@@ -119,9 +115,7 @@ def codes_to_claim(
         "patient": {"reference": f"Patient/{patient_ref}"},
         "provider": {"reference": provider_ref},
         "priority": {"coding": [{"system": _CLAIM_PRIORITY, "code": priority}]},
-        "insurance": [
-            {"sequence": 1, "focal": True, "coverage": {"reference": coverage_ref}}
-        ],
+        "insurance": [{"sequence": 1, "focal": True, "coverage": {"reference": coverage_ref}}],
         "diagnosis": diagnosis,
         "created": datetime.now(UTC).isoformat(),
     }

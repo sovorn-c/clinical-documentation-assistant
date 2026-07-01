@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     # storage; the path recorded on the encounter is what M1 reads.
     upload_dir: str = "uploads"
 
+    # ASR backend (Phase 0 Decision B, executed Phase 5):
+    #   mlx_whisper  — local Apple-Silicon dev (M1's default).
+    #   faster_whisper — cloud/demo (B1 adapter, cross-platform, CPU).
+    asr_backend: str = "mlx_whisper"
+
+    # Rate limiting (Phase 5) — enabled in the demo to keep the public endpoint
+    # stable. ``rate_limit_enabled=False`` disables the limiter (e.g. tests).
+    rate_limit_enabled: bool = False
+    rate_limit_per_minute: int = 20
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

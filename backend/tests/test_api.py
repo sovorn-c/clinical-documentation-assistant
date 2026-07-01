@@ -264,9 +264,7 @@ def test_full_pipeline_flow(client: TestClient, auth_headers: dict[str, str]) ->
     r = client.post(f"/api/encounters/{enc_id}/export-fhir", headers=h)
     assert r.status_code == 200, r.text
     exports = r.json()
-    doc_ref = next(
-        (e for e in exports if e["resource_type"] == "DocumentReference"), None
-    )
+    doc_ref = next((e for e in exports if e["resource_type"] == "DocumentReference"), None)
     assert doc_ref is not None and doc_ref["fhir_version"] == "R5"
     assert "Patient/patient-1" in doc_ref["json_text"]
     # §8.4: approved codes (2 were suggested + approved) -> R4 Conditions.
@@ -359,9 +357,7 @@ def test_export_gating_without_codes_or_referral(
     assert r.status_code == 200
 
 
-def test_audio_upload_and_note_versions(
-    client: TestClient, auth_headers: dict[str, str]
-) -> None:
+def test_audio_upload_and_note_versions(client: TestClient, auth_headers: dict[str, str]) -> None:
     """Multipart audio upload sets encounter.audio_path; versions endpoint exposes the diff."""
     h = auth_headers
     pid = client.post(
@@ -389,7 +385,14 @@ def test_audio_upload_and_note_versions(
     client.post(f"/api/encounters/{eid}/generate-note", headers=h)
     client.put(
         f"/api/encounters/{eid}/note",
-        json={"note": {"subjective": [{"text": "edited claim.", "citations": []}], "objective": [], "assessment": [], "plan": []}},
+        json={
+            "note": {
+                "subjective": [{"text": "edited claim.", "citations": []}],
+                "objective": [],
+                "assessment": [],
+                "plan": [],
+            }
+        },
         headers=h,
     )
     r = client.get(f"/api/encounters/{eid}/notes", headers=h)

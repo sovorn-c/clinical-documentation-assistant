@@ -55,13 +55,25 @@ DeidentifyFn = Callable[[str], object]
 
 
 def get_scribe() -> ScribeLike:
-    """Real M1 Scribe (mlx-whisper + ollama by default; needs models running).
+    """Real M1 Scribe graph.
 
-    Raises at call time if the ASR/note-LLM runtime isn't set up — the demo
-    deployment (Phase 5) configures that, and tests override this dep.
+    ASR backend is chosen by ``ASR_BACKEND`` (Phase 0 Decision B, executed in
+    Phase 5):
+
+    - ``mlx_whisper`` (default; local Apple-Silicon dev): M1's ``build_scribe``
+      factory, which imports ``MlxWhisperTranscriber`` at call time.
+    - ``faster_whisper`` (cloud/demo): B1 constructs the ``Scribe`` graph
+      directly with ``FasterWhisperTranscriber`` injected at the transcriber
+      seam, reusing M1's other per-seam factories for the note generator
+      (ollama), diarizer, draft store, and FHIR exporter. This is adapter-level
+      wiring in B1 — M1's ``build_scribe`` is not edited.
+
+    Both paths need their runtime (mlx-whisper/ollama, or faster-whisper/ollama)
+    present; the app starts regardless (imports are lazy). Tests override this dep.
     """
-    from scribe.composition import build_scribe
+    from clin_doc.settings import get_settings
 
+    backend = get_settings().asr_backend.lower()
     cfg = {
         "audio_source": "file",
         "audio_path": "",
@@ -70,6 +82,37 @@ def get_scribe() -> ScribeLike:
         "llm": {},
         "draft_store": "memory",
     }
+
+    if backend == "faster_whisper":
+        # Construct the graph directly with B1's transcriber injected; reuse
+        # M1's factories for every other seam (composition.py call sequence).
+        from scribe.app.drafts import InMemoryDraftStore
+        from scribe.app.scribe import Scribe
+        from scribe.composition import (
+            _build_diarizer,
+            _build_fhir_exporter,
+            _build_model_host,
+            _build_note_generator,
+        )
+        from scribe.dialogue import DialogueExtractor
+
+        from clin_doc.asr import FasterWhisperTranscriber
+
+        scribe = Scribe(
+            dialogue_extractor=DialogueExtractor(
+                transcriber=FasterWhisperTranscriber(cfg.get("transcriber", {})),
+                diarizer=_build_diarizer(cfg),
+            ),
+            note_generator=_build_note_generator(cfg),
+            fhir_exporter=_build_fhir_exporter(cfg),
+            draft_store=InMemoryDraftStore(),
+            model_host=_build_model_host(cfg),
+        )
+        return scribe  # type: ignore[return-value]
+
+    # Local Apple-Silicon dev path: M1's factory (mlx-whisper).
+    from scribe.composition import build_scribe
+
     return build_scribe(cfg)  # type: ignore[return-value]
 
 

@@ -19,9 +19,9 @@ from clin_core_glue.referral import generate_referral
 from clin_core_glue.soap_text import flatten_soap
 
 __all__ = [
-  "flatten_soap",
-  "redact_for_cloud",
-  "generate_referral",
-  "codes_to_conditions",
+    "flatten_soap",
+    "redact_for_cloud",
+    "generate_referral",
+    "codes_to_conditions",
 ]
 __version__ = "0.1.0"

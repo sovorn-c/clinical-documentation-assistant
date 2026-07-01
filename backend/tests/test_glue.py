@@ -106,9 +106,7 @@ def test_codes_to_conditions_validates_as_r4() -> None:
     from clin_core_glue.fhir_codes import codes_to_conditions
     from fhir.resources.R4B.condition import Condition as R4Condition
 
-    conds = codes_to_conditions(
-        _suggestions(), patient_ref="patient-1", encounter_ref="enc-1"
-    )
+    conds = codes_to_conditions(_suggestions(), patient_ref="patient-1", encounter_ref="enc-1")
     assert len(conds) == 2
     # Each dict is a valid R4B Condition (construction re-validates) and
     # carries the FHIR resourceType key.
@@ -185,5 +183,8 @@ def test_codes_to_claim_validates_and_requires_billing_context() -> None:
     # No suggestions -> explicit error (don't fabricate an empty Claim).
     with pytest.raises(ValueError):
         codes_to_claim(
-            [], patient_ref="p1", provider_ref="o", coverage_ref="c"  # type: ignore[list-item]
+            [],
+            patient_ref="p1",
+            provider_ref="o",
+            coverage_ref="c",  # type: ignore[list-item]
         )

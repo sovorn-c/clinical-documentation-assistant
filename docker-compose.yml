@@ -1,0 +1,79 @@
+# Clinical Documentation Assistant — local + demo compose (Phase 5).
+#
+# The backend declares the four upstream engines as local path deps pointing at
+# sibling repos OUTSIDE this workspace (ai-ambient-scribe, phi-deidentifier,
+# auto-medical-coder, fhir-clinical-summarizer). Docker can only COPY files
+# inside the build context, so the backend service builds with
+#   context: ..          (=> clinical-ai-portfolio/, which contains all 5 repos)
+#   dockerfile: clinical-documentation-assistant/infra/Dockerfile.backend
+#
+# Run from the workspace root:
+#   docker compose up --build
+#
+# Secrets: copy .env.example to .env and fill in API_KEY etc., then pass
+# --env-file .env (compose reads .env automatically for variable substitution).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clin
+      POSTGRES_PASSWORD: clin
+      POSTGRES_DB: clin_doc
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clin -d clin_doc"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ..
+      dockerfile: clinical-documentation-assistant/infra/Dockerfile.backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Postgres (matches the db service above).
+      DATABASE_URL: postgresql+psycopg://clin:clin@db:5432/clin_doc
+      # Cloud LLM key (shared by S1/S2/S3). Set in .env — never commit.
+      API_KEY: ${API_KEY:-}
+      # S1 / clinical_core + B1 referral generation.
+      LLM_MODEL: ${LLM_MODEL:-anthropic/claude-opus-4-8}
+      # S3 coder (bumped off the stale §11 default before Phase 5).
+      MODEL: ${MODEL:-anthropic/claude-sonnet-5}
+      # S2 (mask needs no key).
+      PHI_HASH_KEY: ${PHI_HASH_KEY:-}
+      PHI_REGIONS: ${PHI_REGIONS:-NZ,AU}
+      # Auth.
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      # Phase 0 Decision B: cloud ASR is faster-whisper, not mlx-whisper.
+      ASR_BACKEND: faster_whisper
+      # Rate-limit + synthetic-data banner for the public demo.
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PER_MINUTE: "20"
+      SYNTHETIC_DATA_ONLY: "true"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../infra/Dockerfile.frontend
+      args:
+        # Baked into the Next.js rewrite proxy at build time. The internal
+        # service name `backend` resolves on the compose network.
+        BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

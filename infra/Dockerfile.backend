@@ -1,0 +1,66 @@
+# Backend image: FastAPI + the four upstream engines + the baked S3 index.
+#
+# IMPORTANT — build context: the backend declares the four upstream engines
+# (ai-ambient-scribe, phi-deidentifier, auto-medical-coder, fhir-clinical-
+# summarizer) as local path deps pointing at sibling repos OUTSIDE this
+# workspace. Docker can only COPY files inside the build context, so this
+# image MUST be built with the context set to the PARENT directory
+# (clinical-ai-portfolio/), which contains all five repos. See
+# infra/docker-compose.yml and docs/DEPLOY.md.
+
+FROM python:3.11-slim AS backend
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    UV_LINK_MODE=copy \
+    # Pin S3's baked artefacts to an absolute path so the build step and the
+    # runtime agree (S3 defaults to a relative ./data which would differ).
+    CATALOGUE_PATH=/app/data/icd10cm_catalogue.parquet \
+    CHROMA_DIR=/app/data/chroma \
+    # Cloud demo ASR path (Phase 0 Decision B): faster-whisper, not mlx-whisper.
+    ASR_BACKEND=faster_whisper \
+    # Rate-limit + synthetic-data flags for the public demo.
+    RATE_LIMIT_ENABLED=true \
+    RATE_LIMIT_PER_MINUTE=20
+
+# System deps: build-essential for any source builds; ffmpeg for faster-whisper
+# audio decode; libgomp1 for CTranslate2 OpenMP; git for uv; curl for healthchecks.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ffmpeg libgomp1 git curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+
+# Copy the workspace + the four sibling engine repos (path deps).
+COPY clinical-documentation-assistant/ /app/clinical-documentation-assistant/
+COPY ai-ambient-scribe/ /app/ai-ambient-scribe/
+COPY phi-deidentifier/ /app/phi-deidentifier/
+COPY auto-medical-coder/ /app/auto-medical-coder/
+COPY fhir-clinical-summarizer/ /app/fhir-clinical-summarizer/
+
+WORKDIR /app/clinical-documentation-assistant
+
+# Sync the whole workspace (pulls the four engines via editable path deps +
+# their transitive deps: torch, chromadb, spacy + en-core-web-lg, sentence-
+# transformers). --all-extras picks up the backend [cloud] extra (faster-whisper).
+RUN uv sync --all-packages --all-extras
+
+# Bake S3's ICD-10-CM catalogue + embedding index into the image (execute-plan
+# §7, Phase 5): first-run cost is a few minutes; pay it at BUILD time, not per
+# request. Both steps are idempotent and need network (CMS zip + MiniLM model).
+RUN uv run python -m auto_medical_coder.catalogue \
+    && uv run python -m auto_medical_coder.index
+
+# Copy the entrypoint (migrate + seed + serve).
+COPY clinical-documentation-assistant/infra/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -fsS http://localhost:8000/health || exit 1
+
+WORKDIR /app/clinical-documentation-assistant/backend
+ENTRYPOINT ["/app/entrypoint.sh"]

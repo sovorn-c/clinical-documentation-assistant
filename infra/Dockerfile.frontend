@@ -1,0 +1,46 @@
+# Frontend image: Next.js standalone production server.
+#
+# Build context: the frontend/ directory (this Dockerfile lives in infra/ —
+# point docker-compose at it with `context: ./frontend`,
+# `dockerfile: ../infra/Dockerfile.frontend`). The standalone output mode
+# (next.config.mjs) produces a self-contained server, so the runtime stage
+# carries no node_modules — just the traced server + static assets.
+
+# --- deps + build -----------------------------------------------------------
+FROM node:20-slim AS builder
+WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install --no-audit --no-fund
+
+COPY frontend/ ./
+# BACKEND_URL is baked at build time for the Next.js rewrite proxy. The compose
+# file sets it to http://backend:8000 (the internal service name).
+ARG BACKEND_URL=http://backend:8000
+ENV BACKEND_URL=$BACKEND_URL
+RUN npm run build
+
+# --- runtime ----------------------------------------------------------------
+FROM node:20-slim AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+
+# Non-root user for the runtime.
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Standalone server + static assets (Next.js traces these during build).
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+
+CMD ["node", "server.js"]
