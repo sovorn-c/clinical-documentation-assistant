@@ -7,7 +7,9 @@ engine; production uses the FastAPI ``get_session`` dependency over Postgres.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -42,5 +44,10 @@ def reset_engine_cache() -> None:
 
 
 def get_session() -> Iterator[Session]:
-    with Session(get_engine()) as session:
+    # expire_on_commit=False so post-commit reads (e.g. service-level
+    # model_dump for response payloads) don't hit expired/empty attributes.
+    with Session(get_engine(), expire_on_commit=False) as session:
         yield session
+
+
+DbSession = Annotated[Session, Depends(get_session)]

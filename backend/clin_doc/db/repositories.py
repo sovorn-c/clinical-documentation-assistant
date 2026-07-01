@@ -53,9 +53,7 @@ class PatientRepo:
         fhir_bundle_path: str | None = None,
         audit: AuditMeta,
     ) -> Patient:
-        existing = self.s.exec(
-            select(Patient).where(Patient.patient_ref == patient_ref)
-        ).first()
+        existing = self.s.exec(select(Patient).where(Patient.patient_ref == patient_ref)).first()
         if existing is not None:
             return existing
         patient = Patient(
@@ -125,11 +123,7 @@ class EncounterRepo:
         return self.s.get(Encounter, encounter_id)
 
     def list_by_patient(self, patient_id: str) -> list[Encounter]:
-        return list(
-            self.s.exec(
-                select(Encounter).where(Encounter.patient_id == patient_id)
-            ).all()
-        )
+        return list(self.s.exec(select(Encounter).where(Encounter.patient_id == patient_id)).all())
 
     def update_status(
         self, encounter_id: str, status: EncounterStatus, audit: AuditMeta
@@ -306,9 +300,7 @@ class CodeRepo:
         """Replace the encounter's suggestions (one row per CodeSuggestion)."""
         old = list(
             self.s.exec(
-                select(CodeSuggestionRow).where(
-                    CodeSuggestionRow.encounter_id == encounter_id
-                )
+                select(CodeSuggestionRow).where(CodeSuggestionRow.encounter_id == encounter_id)
             ).all()
         )
         before = [_row_dict(r) for r in old]
@@ -393,9 +385,7 @@ class ReferralRepo:
         model: str | None = None,
         audit: AuditMeta,
     ) -> Referral:
-        prev = self.s.exec(
-            select(Referral).where(Referral.encounter_id == encounter_id)
-        ).first()
+        prev = self.s.exec(select(Referral).where(Referral.encounter_id == encounter_id)).first()
         before = _row_dict(prev) if prev else None
         r = Referral(
             encounter_id=encounter_id,
@@ -420,13 +410,9 @@ class ReferralRepo:
         return r
 
     def get_by_encounter(self, encounter_id: str) -> Referral | None:
-        return self.s.exec(
-            select(Referral).where(Referral.encounter_id == encounter_id)
-        ).first()
+        return self.s.exec(select(Referral).where(Referral.encounter_id == encounter_id)).first()
 
-    def set_approved(
-        self, referral_id: str, approved: bool, audit: AuditMeta
-    ) -> Referral:
+    def set_approved(self, referral_id: str, approved: bool, audit: AuditMeta) -> Referral:
         r = self.s.get(Referral, referral_id)
         if r is None:
             raise KeyError(f"no referral {referral_id}")
@@ -487,9 +473,7 @@ class ApprovalRepo:
 
     def get_by_encounter(self, encounter_id: str) -> list[Approval]:
         return list(
-            self.s.exec(
-                select(Approval).where(Approval.encounter_id == encounter_id)
-            ).all()
+            self.s.exec(select(Approval).where(Approval.encounter_id == encounter_id)).all()
         )
 
 
@@ -531,9 +515,7 @@ class FhirExportRepo:
 
     def get_by_encounter(self, encounter_id: str) -> list[FhirExport]:
         return list(
-            self.s.exec(
-                select(FhirExport).where(FhirExport.encounter_id == encounter_id)
-            ).all()
+            self.s.exec(select(FhirExport).where(FhirExport.encounter_id == encounter_id)).all()
         )
 
 

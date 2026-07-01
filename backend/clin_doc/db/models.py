@@ -27,6 +27,19 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+class User(SQLModel, table=True):
+    """A clinician who can authenticate and approve artifacts."""
+
+    __tablename__ = "users"
+
+    id: str = Field(primary_key=True, default_factory=_uuid)
+    username: str = Field(index=True, unique=True)
+    hashed_password: str
+    display_name: str | None = None
+    role: str = Field(default="clinician")  # clinician | admin
+    created_at: datetime = Field(default_factory=_now)
+
+
 class Patient(SQLModel, table=True):
     """Reference to a FHIR Patient (context loaded via S1 ``load_bundle``)."""
 

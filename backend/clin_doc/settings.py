@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     # Synthetic-data banner (§11) — always on in the demo.
     synthetic_data_only: bool = True
 
+    # Auth (Phase 2) — a single seeded demo clinician for the demo env.
+    seed_username: str = "clinician"
+    seed_password: str = "changeme"  # override via env in any real deployment
+    seed_display_name: str = "Dr. Demo"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

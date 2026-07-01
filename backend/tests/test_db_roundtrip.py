@@ -79,10 +79,17 @@ def _seed_encounter(session: Session) -> str:
 
 def test_roundtrip_soap_note(db_session: Session) -> None:
     note = SOAPNote(
-        subjective=[Claim(text="Patient reports thirst.", citations=[SpanRef(utterance_id="u1", char_span=(0, 7))])],
+        subjective=[
+            Claim(
+                text="Patient reports thirst.",
+                citations=[SpanRef(utterance_id="u1", char_span=(0, 7))],
+            )
+        ],
         objective=[Claim(text="BMI 31.", citations=[SpanRef(utterance_id="u2")])],
         assessment=[Claim(text="Type 2 diabetes.")],
-        plan=[Claim(text="Check HbA1c.", citations=[SpanRef(utterance_id="u3", char_span=(6, 11))])],
+        plan=[
+            Claim(text="Check HbA1c.", citations=[SpanRef(utterance_id="u3", char_span=(6, 11))])
+        ],
     )
     enc_id = _seed_encounter(db_session)
     NoteRepo(db_session).create_draft(
@@ -142,7 +149,11 @@ def test_roundtrip_deid_result() -> None:
 
     result = DeidResult(
         redacted_text="Contact [REDACTED:EMAIL]",
-        spans=[PHISpan(start=8, end=24, type=EntityType.EMAIL, text="smith@hospital.org", source="rule")],
+        spans=[
+            PHISpan(
+                start=8, end=24, type=EntityType.EMAIL, text="smith@hospital.org", source="rule"
+            )
+        ],
         audit=[AuditEntry(type=EntityType.EMAIL, count=1)],
     )
     assert deid_from_dict(deid_to_dict(result)) == result
@@ -195,7 +206,15 @@ def test_roundtrip_summary() -> None:
         patient_id="patient-1",
         one_liner="T2DM, well controlled on metformin.",
         sections=[
-            Section(heading="Problems", bullets=[Bullet(text="T2DM", source_refs=[SourceRef(resource_type="Condition", resource_id="cond-1")])]),
+            Section(
+                heading="Problems",
+                bullets=[
+                    Bullet(
+                        text="T2DM",
+                        source_refs=[SourceRef(resource_type="Condition", resource_id="cond-1")],
+                    )
+                ],
+            ),
             Section(heading="Medications", bullets=[], no_data=True),
             Section(heading="Recent Encounters", bullets=[], no_data=True),
             Section(heading="Key Results", bullets=[], no_data=True),
@@ -208,7 +227,11 @@ def test_roundtrip_summary() -> None:
 
 def test_roundtrip_document_ref(db_session: Session) -> None:
     doc = DocumentRef(
-        resource={"resourceType": "DocumentReference", "status": "current", "subject": {"reference": "Patient/patient-1"}},
+        resource={
+            "resourceType": "DocumentReference",
+            "status": "current",
+            "subject": {"reference": "Patient/patient-1"},
+        },
         json_text='{"resourceType":"DocumentReference"}',
     )
     enc_id = _seed_encounter(db_session)
@@ -224,7 +247,9 @@ def test_roundtrip_document_ref(db_session: Session) -> None:
 
     exports = FhirExportRepo(db_session).get_by_encounter(enc_id)
     assert len(exports) == 1
-    restored = documentref_from_dict({"resource": exports[0].resource, "json_text": exports[0].json_text})
+    restored = documentref_from_dict(
+        {"resource": exports[0].resource, "json_text": exports[0].json_text}
+    )
     assert restored == doc
 
 
@@ -241,7 +266,9 @@ def test_every_write_is_audited(db_session: Session) -> None:
     )  # 1 write
     NoteRepo(db_session).save_edit(
         encounter_id=enc_id,
-        note=soap_to_dict(SOAPNote(subjective=[Claim(text="Patient reports thirst and polyuria.")])),
+        note=soap_to_dict(
+            SOAPNote(subjective=[Claim(text="Patient reports thirst and polyuria.")])
+        ),
         audit=_audit(AuditAction.EDIT_NOTE, AuditActor.USER),
     )  # 1 write
     CodeRepo(db_session).save_suggestions(
@@ -273,7 +300,9 @@ def test_every_write_is_audited(db_session: Session) -> None:
         json_text="{}",
         audit=_audit(AuditAction.FHIR_EXPORT),
     )  # 1 write
-    EncounterRepo(db_session).update_status(enc_id, EncounterStatus.EXPORTED, _audit(AuditAction.FHIR_EXPORT))  # 1 write
+    EncounterRepo(db_session).update_status(
+        enc_id, EncounterStatus.EXPORTED, _audit(AuditAction.FHIR_EXPORT)
+    )  # 1 write
     db_session.commit()
 
     rows = AuditRepo(db_session).list_for_encounter(enc_id)

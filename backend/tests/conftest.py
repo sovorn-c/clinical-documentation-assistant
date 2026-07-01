@@ -36,7 +36,7 @@ def db_session() -> Session:
         poolclass=StaticPool,
     )
     init_db(engine)
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         yield session
 
 
