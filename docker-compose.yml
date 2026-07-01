@@ -50,7 +50,11 @@ services:
       PHI_HASH_KEY: ${PHI_HASH_KEY:-}
       PHI_REGIONS: ${PHI_REGIONS:-NZ,AU}
       # Auth.
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:-demo-only-not-for-production-7f3a9e2b}
+      # Phase 6 secrets hygiene: the guard above rejects the *default* JWT
+      # secret on a non-SQLite DB. The compose default above is non-default, so
+      # the demo boots cleanly; override JWT_SECRET for any real deployment.
+      ALLOW_INSECURE_SECRETS: ${ALLOW_INSECURE_SECRETS:-false}
       # Phase 0 Decision B: cloud ASR is faster-whisper, not mlx-whisper.
       ASR_BACKEND: faster_whisper
       # Rate-limit + synthetic-data banner for the public demo.

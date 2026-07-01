@@ -63,6 +63,9 @@ def edit_note(encounter_id: str, body: NoteEdit, svc: PipelineDep) -> Note:
         return svc.edit_note(encounter_id, body.note)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+    except ValueError as e:
+        # Malformed SOAPNote payload — soap_from_dict validation failure.
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @router.get("/{encounter_id}/note", response_model=NoteOut)

@@ -403,6 +403,27 @@ def test_audio_upload_and_note_versions(client: TestClient, auth_headers: dict[s
     assert versions[-1]["version"] == 2
 
 
+def test_edit_note_rejects_malformed_soap(client: TestClient, auth_headers: dict[str, str]) -> None:
+    """Phase 6 input validation: a non-SOAPNote payload is 422, not 500."""
+    h = auth_headers
+    pid = client.post(
+        "/api/patients", json={"patient_ref": "p-422", "display_name": "Bad"}, headers=h
+    ).json()["id"]
+    eid = client.post(
+        "/api/encounters",
+        json={"patient_id": pid, "encounter_ref": "e-422", "audio_path": "/tmp/f.wav"},
+        headers=h,
+    ).json()["id"]
+    client.post(f"/api/encounters/{eid}/generate-note", headers=h)
+    # subjective must be a list of claims, not a string -> 422.
+    r = client.put(
+        f"/api/encounters/{eid}/note",
+        json={"note": {"subjective": "not-a-list", "objective": [], "assessment": [], "plan": []}},
+        headers=h,
+    )
+    assert r.status_code == 422, r.text
+
+
 def teardown_module() -> None:  # type: ignore[name-defined]
     import os
 

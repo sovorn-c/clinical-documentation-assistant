@@ -21,7 +21,7 @@ from clin_doc.auth import seed_user
 from clin_doc.db.session import get_engine, init_db
 from clin_doc.rate_limit import maybe_add_rate_limit
 from clin_doc.routers import api_router
-from clin_doc.settings import get_settings
+from clin_doc.settings import assert_production_secrets, cors_origin_list, get_settings
 
 log = logging.getLogger("clin_doc")
 
@@ -29,6 +29,9 @@ log = logging.getLogger("clin_doc")
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     s = get_settings()
+    # Phase 6 secrets hygiene: refuse to boot a production DB with the default
+    # JWT secret (the demo opts out via ALLOW_INSECURE_SECRETS).
+    assert_production_secrets()
     # Dev/demo on SQLite: create tables + seed the demo clinician. Prod
     # (Postgres) uses `alembic upgrade head` + an explicit seed instead.
     if s.database_url.startswith("sqlite"):
@@ -63,10 +66,11 @@ def create_app() -> FastAPI:
     )
     app = FastAPI(title="Clinical Documentation Assistant", version="0.1.0", lifespan=lifespan)
 
-    # Tighten allow_origins in Phase 6; permissive for the local demo only.
+    # CORS (Phase 6): explicit origin allowlist instead of "*"+credentials.
+    origins = cors_origin_list()
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -180,6 +180,10 @@ class PipelineService:
         return note
 
     def edit_note(self, encounter_id: str, note_dict: dict[str, Any]) -> Note:
+        # Validate the payload parses as a SOAPNote before persisting — a
+        # malformed note would round-trip fine into the JSON column but break
+        # the export path later. Reject early with a clear error.
+        soap_from_dict(note_dict)
         NoteRepo(self.s).save_edit(
             encounter_id=encounter_id,
             note=note_dict,
