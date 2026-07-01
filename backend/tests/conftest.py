@@ -1,4 +1,4 @@
-"""Shared fakes + fixtures for Phase 0 engine smoke tests.
+"""Shared fakes + fixtures for engine smoke tests and the data-layer suite.
 
 The fakes exercise M1's real ``Scribe`` facade + ``DialogueExtractor`` without
 mlx-whisper (Apple-Silicon ASR) or ollama (note LLM) — the smoke test's job is
@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from clin_doc.db.session import init_db
 from scribe.dialogue.transcriber.base import Transcriber
 from scribe.domain.types import (
     Audio,
@@ -20,8 +21,23 @@ from scribe.domain.types import (
     TimeSpan,
     TranscriptSeg,
 )
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, create_engine
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def db_session() -> Session:
+    """A fresh in-memory SQLite session with all Phase 1 tables created."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    init_db(engine)
+    with Session(engine) as session:
+        yield session
 
 
 class FakeTranscriber(Transcriber):

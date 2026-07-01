@@ -10,6 +10,7 @@ members = ["backend", "packages/clin_core_glue"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["backend/alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "W"]
