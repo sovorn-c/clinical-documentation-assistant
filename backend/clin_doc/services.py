@@ -108,6 +108,39 @@ class PipelineService:
         self.s.commit()
         return enc
 
+    def upload_audio(self, encounter_id: str, data: bytes, filename: str) -> Encounter:
+        """Persist uploaded audio bytes and record the path on the encounter."""
+        from pathlib import Path
+
+        from clin_doc.db.audit import write_audit
+        from clin_doc.settings import get_settings
+
+        enc = self._require_encounter(encounter_id)
+        upload_dir = Path(get_settings().upload_dir)
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        safe = filename.replace("/", "_")
+        dest = upload_dir / f"{encounter_id}_{safe}"
+        dest.write_bytes(data)
+        before = {"audio_path": enc.audio_path}
+        enc.audio_path = str(dest)
+        self.s.add(enc)
+        self.s.flush()
+        write_audit(
+            self.s,
+            encounter_id,
+            self._audit(AuditAction.UPLOAD_AUDIO, AuditActor.USER).model_copy(
+                update={
+                    "artifact_type": ArtifactType.ENCOUNTER,
+                    "artifact_id": enc.id,
+                    "before": before,
+                    "after": {"audio_path": enc.audio_path},
+                    "meta": {"filename": safe, "bytes": len(data)},
+                }
+            ),
+        )
+        self.s.commit()
+        return enc
+
     # --- M1: audio -> SOAP note ---------------------------------------------
     def generate_note(self, encounter_id: str) -> Note:
         enc = self._require_encounter(encounter_id)

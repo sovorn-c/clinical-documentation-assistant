@@ -344,6 +344,47 @@ def test_export_gating_without_codes_or_referral(
     assert r.status_code == 200
 
 
+def test_audio_upload_and_note_versions(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    """Multipart audio upload sets encounter.audio_path; versions endpoint exposes the diff."""
+    h = auth_headers
+    pid = client.post(
+        "/api/patients", json={"patient_ref": "p-up", "display_name": "Up"}, headers=h
+    ).json()["id"]
+    eid = client.post(
+        "/api/encounters",
+        json={"patient_id": pid, "encounter_ref": "e-up", "audio_path": None},
+        headers=h,
+    ).json()["id"]
+    assert client.get(f"/api/encounters/{eid}", headers=h).json()["audio_path"] is None
+
+    # multipart upload
+    r = client.post(
+        f"/api/encounters/{eid}/audio",
+        files={"file": ("sample.wav", b"RIFF...audio-bytes", "audio/wav")},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    enc = r.json()
+    assert enc["audio_path"].endswith("sample.wav")
+    assert "uploads" in enc["audio_path"]
+
+    # generate then edit -> versions endpoint returns ai + human
+    client.post(f"/api/encounters/{eid}/generate-note", headers=h)
+    client.put(
+        f"/api/encounters/{eid}/note",
+        json={"note": {"subjective": [{"text": "edited claim.", "citations": []}], "objective": [], "assessment": [], "plan": []}},
+        headers=h,
+    )
+    r = client.get(f"/api/encounters/{eid}/notes", headers=h)
+    assert r.status_code == 200, r.text
+    versions = r.json()
+    sources = [v["source"] for v in versions]
+    assert "ai" in sources and "human" in sources
+    assert versions[-1]["version"] == 2
+
+
 def teardown_module() -> None:  # type: ignore[name-defined]
     import os
 

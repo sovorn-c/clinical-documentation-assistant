@@ -17,6 +17,7 @@ dependencies = [
   "psycopg[binary]>=3.1",
   "python-jose[cryptography]>=3.3",
   "bcrypt>=4.2",
+  "python-multipart>=0.0.9",
   "fhir.resources>=8.0",
   # Upstream engines, as local path deps (execute-plan §7).
   "ai-ambient-scribe",

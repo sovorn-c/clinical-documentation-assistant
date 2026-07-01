@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     seed_password: str = "changeme"  # override via env in any real deployment
     seed_display_name: str = "Dr. Demo"
 
+    # Uploaded audio is stored here (gitignored). Phase 5 may swap for object
+    # storage; the path recorded on the encounter is what M1 reads.
+    upload_dir: str = "uploads"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
