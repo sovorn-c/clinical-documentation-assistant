@@ -23,10 +23,10 @@ Each engine is its own open-source project with its own tests and docs:
 
 | Engine | What it does | Repo |
 |---|---|---|
-| **Ambient Scribe** | Turns consultation audio into a transcript and a structured SOAP note | [ai-ambient-scribe](https://github.com/sovorn-g/ai-ambient-scribe) |
-| **PHI De-identifier** | Strips identifying information from clinical text before it reaches any cloud AI call | [phi-deidentifier](https://github.com/sovorn-g/phi-deidentifier) |
-| **Medical Coder** | Suggests ranked ICD-10-CM billing codes from a note | [auto-medical-coder](https://github.com/sovorn-g/auto-medical-coder) |
-| **Clinical Summarizer** | Turns a patient's FHIR record into a plain-language summary | [fhir-clinical-summarizer](https://github.com/sovorn-g/fhir-clinical-summarizer) |
+| **Ambient Scribe** | Turns consultation audio into a transcript and a structured SOAP note | [ai-ambient-scribe](https://github.com/sovorn-c/ai-ambient-scribe) |
+| **PHI De-identifier** | Strips identifying information from clinical text before it reaches any cloud AI call | [phi-deidentifier](https://github.com/sovorn-c/phi-deidentifier) |
+| **Medical Coder** | Suggests ranked ICD-10-CM billing codes from a note | [auto-medical-coder](https://github.com/sovorn-c/auto-medical-coder) |
+| **Clinical Summarizer** | Turns a patient's FHIR record into a plain-language summary | [fhir-clinical-summarizer](https://github.com/sovorn-c/fhir-clinical-summarizer) |
 
 The work in *this* repo is the orchestration, approval gating, data layer,
 audit log, and clinician UI that wires those four engines together — plus a
@@ -116,10 +116,12 @@ deployment plan in the meantime.
 - Node 20+
 - Docker (for the full-stack compose run)
 - The four engine repos above, cloned as siblings of this repo (the backend
-  depends on them as local path dependencies):
+  depends on them as local path dependencies). The parent folder can be named
+  anything — only the sibling layout and each repo's default clone name
+  matter:
 
   ```
-  clinical-ai-portfolio/
+  any-folder-name-you-want/
   ├── clinical-documentation-assistant/   ← this repo
   ├── ai-ambient-scribe/
   ├── phi-deidentifier/
@@ -132,11 +134,22 @@ deployment plan in the meantime.
 ```bash
 # Backend — installs the four engines via editable path deps + their transitive
 # deps (torch, chromadb, spaCy + en-core-web-lg, sentence-transformers).
-cp .env.example .env          # set API_KEY for codes/summary/referral
-uv sync --all-packages
+cp .env.example .env          # set API_KEY for codes/summary/referral; set a real JWT_SECRET
+docker compose up -d db       # Postgres only — dev uses the same DB as production
+uv sync --all-packages --extra local-mac   # Apple Silicon (mlx-whisper); use --extra cloud elsewhere
 uv run --project backend pytest backend/tests        # 48 tests
-uv run --project backend uvicorn clin_doc.main:app --reload  # :8000
+uv run --project backend uvicorn clin_doc.main:app --reload \
+  --reload-dir backend/clin_doc --reload-dir packages/clin_core_glue  # :8000
 ```
+
+The `--reload-dir` flags matter: without them, `--reload` watches the entire
+repo root, including `.venv`, `uploads/`, and any model/index caches — a
+`uv sync` or an audio upload can then trigger a mid-request server restart.
+
+`DATABASE_URL` defaults to Postgres so local dev matches production. SQLite
+(`DATABASE_URL=sqlite:///./clindoc.db`) also works as a no-Docker fallback,
+but isn't the documented path — it skips the secrets guard (see
+[Security](#security)) and behaves slightly differently at the SQL level.
 
 ```bash
 # Frontend
@@ -195,7 +208,7 @@ clinical-documentation-assistant/
 │   ├── alembic/             # Migrations
 │   ├── packages/clin_core_glue/  # (workspace member) the net-new glue pieces
 │   └── tests/               # 48 tests: smoke, db round-trip, glue, API, deployment, security
-├── frontend/                # Next.js 14 + Tailwind clinician UI
+├── frontend/                # Next.js 15 + Tailwind clinician UI
 ├── infra/                   # Dockerfile.backend, Dockerfile.frontend, entrypoint.sh
 ├── docs/                    # ARCHITECTURE.md, DEPLOY.md
 └── docker-compose.yml
