@@ -131,10 +131,11 @@ deployment plan in the meantime.
 
 ### Local dev (backend + frontend)
 
-Quickest path on Apple Silicon: `./dev.sh` — starts Postgres, installs deps,
-runs migrations + seed, and brings up the backend (mlx-whisper + local
-Ollama) and frontend together. `./stop.sh` tears the containers back down.
-The manual steps below are what it automates:
+Quickest path on Apple Silicon: `./dev.sh` — installs/starts Ollama and pulls
+the local drafting model, starts Postgres, installs deps, runs migrations +
+seed, and brings up the backend (mlx-whisper + local Ollama) and frontend
+together. `./stop.sh` tears the containers back down. To do it manually
+instead (e.g. on Linux, or against a cloud LLM):
 
 ```bash
 # Backend — installs the four engines via editable path deps + their transitive
@@ -142,8 +143,13 @@ The manual steps below are what it automates:
 cp .env.example .env          # set API_KEY for codes/summary/referral; set a real JWT_SECRET
 docker compose up -d db       # Postgres only — dev uses the same DB as production
 uv sync --all-packages --extra local-mac   # Apple Silicon (mlx-whisper); use --extra cloud elsewhere
-uv run --project backend pytest backend/tests        # 48 tests
-(cd backend && uv run alembic upgrade head && uv run python -m clin_doc.seed)  # tables + demo clinician
+
+# Tables + demo clinician — needed once per fresh Postgres volume. This one
+# command has to run with backend/ as the cwd (alembic.ini's script_location
+# is a relative path); everything else here runs from the repo root instead,
+# so uvicorn's --reload-dir flags below can target packages/clin_core_glue.
+(cd backend && uv run alembic upgrade head && uv run python -m clin_doc.seed)
+
 uv run --project backend uvicorn clin_doc.main:app --reload \
   --reload-dir backend/clin_doc --reload-dir packages/clin_core_glue  # :8000
 ```
