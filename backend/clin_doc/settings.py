@@ -57,6 +57,13 @@ class Settings(BaseSettings):
     #   faster_whisper — cloud/demo (B1 adapter, cross-platform, CPU).
     asr_backend: str = "mlx_whisper"
 
+    # Real speaker diarization (sherpa-onnx, M1's phase1 extra). Both unset
+    # (the default) keeps NullDiarizer — every speaker labeled UNKNOWN. Set
+    # both to real .onnx paths to get CLINICIAN/PATIENT role labels; see
+    # ai-ambient-scribe/README.md "Diarization models" for how to fetch them.
+    diarizer_model_path: str = ""
+    diarizer_segmentation_model_path: str = ""
+
     # Rate limiting (Phase 5) — enabled in the demo to keep the public endpoint
     # stable. ``rate_limit_enabled=False`` disables the limiter (e.g. tests).
     rate_limit_enabled: bool = False

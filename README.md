@@ -131,6 +131,11 @@ deployment plan in the meantime.
 
 ### Local dev (backend + frontend)
 
+Quickest path on Apple Silicon: `./dev.sh` — starts Postgres, installs deps,
+runs migrations + seed, and brings up the backend (mlx-whisper + local
+Ollama) and frontend together. `./stop.sh` tears the containers back down.
+The manual steps below are what it automates:
+
 ```bash
 # Backend — installs the four engines via editable path deps + their transitive
 # deps (torch, chromadb, spaCy + en-core-web-lg, sentence-transformers).
@@ -138,6 +143,7 @@ cp .env.example .env          # set API_KEY for codes/summary/referral; set a re
 docker compose up -d db       # Postgres only — dev uses the same DB as production
 uv sync --all-packages --extra local-mac   # Apple Silicon (mlx-whisper); use --extra cloud elsewhere
 uv run --project backend pytest backend/tests        # 48 tests
+(cd backend && uv run alembic upgrade head && uv run python -m clin_doc.seed)  # tables + demo clinician
 uv run --project backend uvicorn clin_doc.main:app --reload \
   --reload-dir backend/clin_doc --reload-dir packages/clin_core_glue  # :8000
 ```
@@ -146,8 +152,10 @@ The `--reload-dir` flags matter: without them, `--reload` watches the entire
 repo root, including `.venv`, `uploads/`, and any model/index caches — a
 `uv sync` or an audio upload can then trigger a mid-request server restart.
 
-`DATABASE_URL` defaults to Postgres so local dev matches production. SQLite
-(`DATABASE_URL=sqlite:///./clindoc.db`) also works as a no-Docker fallback,
+`DATABASE_URL` defaults to Postgres so local dev matches production — on
+Postgres, tables and the demo clinician only exist once you've run the
+migration + seed step above. SQLite (`DATABASE_URL=sqlite:///./clindoc.db`)
+also works as a no-Docker fallback and seeds itself automatically on startup,
 but isn't the documented path — it skips the secrets guard (see
 [Security](#security)) and behaves slightly differently at the SQL level.
 
@@ -156,8 +164,7 @@ but isn't the documented path — it skips the secrets guard (see
 cd frontend && npm install && npm run dev   # :3000, proxies /api → :8000
 ```
 
-Open http://localhost:3000 → sign in as `clinician` / `changeme` (seeded on
-SQLite startup).
+Open http://localhost:3000 → sign in as `clinician` / `changeme`.
 
 ### Full stack via Docker
 

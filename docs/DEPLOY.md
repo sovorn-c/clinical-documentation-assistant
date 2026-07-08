@@ -9,12 +9,12 @@ the ASR strategy execution, the S3 index bake, and the managed-Postgres path.
 The backend declares the four upstream engines — `ai-ambient-scribe`,
 `phi-deidentifier`, `auto-medical-coder`, `fhir-clinical-summarizer` — as
 **local path deps** pointing at sibling repos that live **outside** this
-workspace, one level up in `clinical-ai-portfolio/`. Docker can only `COPY`
-files inside the build context, so the backend image must be built with the
-context set to the **parent** directory:
+workspace, one level up in the parent folder (any name works — see below).
+Docker can only `COPY` files inside the build context, so the backend image
+must be built with the context set to the **parent** directory:
 
 ```
-clinical-ai-portfolio/                 ← build context for the backend
+any-folder-name-you-want/              ← build context for the backend
 ├── clinical-documentation-assistant/  ← this repo (compose lives here)
 │   ├── infra/Dockerfile.backend
 │   └── docker-compose.yml

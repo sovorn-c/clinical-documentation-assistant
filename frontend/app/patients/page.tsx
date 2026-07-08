@@ -6,6 +6,26 @@ import { ApiError, createPatient, listPatients, summarizePatient } from "@/lib/a
 import type { Patient } from "@/lib/types";
 import { TopBar } from "@/components/TopBar";
 
+function initials(p: Patient): string {
+  const src = p.display_name ?? p.patient_ref;
+  const parts = src.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const AVATAR_TONES = [
+  "bg-teal-100 text-teal-700",
+  "bg-ember-100 text-ember-700",
+  "bg-ink-200 text-ink-700",
+];
+
+function avatarTone(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[h % AVATAR_TONES.length];
+}
+
 export default function PatientsPage() {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -83,46 +103,57 @@ export default function PatientsPage() {
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {error && (
-          <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <p className="mb-4 rounded-lg bg-brick-50 px-3 py-2 text-sm text-brick-700" role="alert">
             {error}
           </p>
         )}
 
         <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
           <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Patients
-            </h2>
+            <h2 className="mb-3 font-serif text-lg font-semibold text-ink-900">Today's queue</h2>
             {loading ? (
-              <p className="text-sm text-slate-400">Loading…</p>
+              <p className="text-sm text-ink-400">Loading…</p>
             ) : patients.length === 0 ? (
-              <p className="text-sm text-slate-400">No patients yet — create one to begin.</p>
+              <div className="rounded-2xl border border-dashed border-ink-300 bg-white/60 px-6 py-10 text-center">
+                <p className="text-sm text-ink-500">No patients yet.</p>
+                <p className="mt-1 text-xs text-ink-400">Add one on the right to begin.</p>
+              </div>
             ) : (
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <ul className="divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white">
                 {patients.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">
-                        {p.display_name ?? "Unnamed"}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        FHIR Patient/{p.patient_ref}
-                        {p.fhir_bundle_path ? " · context available" : ""}
-                      </p>
+                  <li key={p.id} className="flex items-center justify-between gap-4 px-4 py-3.5">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className={
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-xs font-semibold " +
+                          avatarTone(p.id)
+                        }
+                      >
+                        {initials(p)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-ink-900">
+                          {p.display_name ?? "Unnamed"}
+                        </p>
+                        <p className="truncate text-xs text-ink-500">
+                          FHIR Patient/{p.patient_ref}
+                          {p.fhir_bundle_path ? " · context available" : ""}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex shrink-0 gap-2">
                       {p.fhir_bundle_path && (
                         <button
                           onClick={() => runSummary(p)}
                           disabled={summaryFor === p.id}
-                          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                          className="rounded-lg border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:bg-ink-50 disabled:opacity-60"
                         >
                           Summarize
                         </button>
                       )}
                       <button
                         onClick={() => startEncounter(p)}
-                        className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                        className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-700"
                       >
                         Start encounter
                       </button>
@@ -133,26 +164,26 @@ export default function PatientsPage() {
             )}
 
             {summary && (
-              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-900">Patient summary</h3>
-                <p className="mt-1 text-sm text-slate-700">
+              <div className="mt-4 rounded-2xl border border-ink-200 bg-white p-4">
+                <h3 className="text-sm font-semibold text-ink-900">Patient summary</h3>
+                <p className="mt-1 text-sm text-ink-700">
                   {String(summary.one_liner ?? "")}
                 </p>
                 {Array.isArray(summary.sections) && (
                   <div className="mt-3 space-y-3">
                     {(summary.sections as Array<Record<string, unknown>>).map((s, i) => (
                       <div key={i}>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
                           {String(s.heading ?? "")}
                         </p>
                         {Array.isArray(s.bullets) && (s.bullets as unknown[]).length > 0 ? (
-                          <ul className="mt-1 list-disc pl-5 text-sm text-slate-700">
+                          <ul className="mt-1 list-disc pl-5 text-sm text-ink-700">
                             {(s.bullets as Array<Record<string, unknown>>).map((b, j) => (
                               <li key={j}>{String(b.text ?? "")}</li>
                             ))}
                           </ul>
                         ) : (
-                          <p className="mt-0.5 text-xs italic text-slate-400">No data</p>
+                          <p className="mt-0.5 text-xs italic text-ink-400">No data</p>
                         )}
                       </div>
                     ))}
@@ -163,46 +194,44 @@ export default function PatientsPage() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Add patient
-            </h2>
+            <h2 className="mb-3 font-serif text-lg font-semibold text-ink-900">Add patient</h2>
             <form
               onSubmit={create}
-              className="space-y-3 rounded-xl border border-slate-200 bg-white p-5"
+              className="space-y-3 rounded-2xl border border-ink-200 bg-white p-5"
             >
               <label className="block space-y-1">
-                <span className="text-xs font-medium text-slate-600">FHIR Patient id *</span>
+                <span className="text-xs font-medium text-ink-600">FHIR Patient id *</span>
                 <input
                   value={ref}
                   onChange={(e) => setRef(e.target.value)}
                   placeholder="patient-1"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                 />
               </label>
               <label className="block space-y-1">
-                <span className="text-xs font-medium text-slate-600">Display name</span>
+                <span className="text-xs font-medium text-ink-600">Display name</span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                 />
               </label>
               <label className="block space-y-1">
-                <span className="text-xs font-medium text-slate-600">
+                <span className="text-xs font-medium text-ink-600">
                   FHIR bundle path (for context + summary)
                 </span>
                 <input
                   value={bundle}
                   onChange={(e) => setBundle(e.target.value)}
                   placeholder="/path/to/r4_patient_bundle.json"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                 />
               </label>
               <button
                 type="submit"
                 disabled={creating || !ref}
-                className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+                className="w-full rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-800 disabled:opacity-60"
               >
                 {creating ? "Adding…" : "Add patient"}
               </button>

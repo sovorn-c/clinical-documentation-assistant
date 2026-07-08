@@ -48,6 +48,24 @@ WORKDIR /app/clinical-documentation-assistant
 # transformers). --all-extras picks up the backend [cloud] extra (faster-whisper).
 RUN uv sync --all-packages --all-extras
 
+# torch (pulled in transitively by sentence-transformers) resolves to CUDA
+# wheels on Linux by default, dragging in ~3.5G of nvidia-*/triton packages
+# that this container never uses — it's a CPU-only image on Mac/most cloud
+# hosts. Swap to the CPU-only torch build and drop the now-orphaned CUDA
+# packages. Build with `--build-arg TORCH_VARIANT=cuda` to skip this and keep
+# the default CUDA-enabled wheels when targeting a GPU-equipped Linux host —
+# torch auto-detects the device (cuda/mps/cpu) at runtime either way, so no
+# application code changes are needed for either variant. (Local, non-Docker
+# dev on Apple Silicon is untouched by this — macOS torch wheels never ship
+# CUDA and already auto-detect MPS.)
+ARG TORCH_VARIANT=cpu
+RUN if [ "$TORCH_VARIANT" = "cpu" ]; then \
+      uv pip install --python .venv/bin/python torch \
+        --index-url https://download.pytorch.org/whl/cpu --reinstall-package torch && \
+      uv pip uninstall --python .venv/bin/python triton \
+        $(uv pip list --python .venv/bin/python | awk '$1 ~ /^nvidia-/ {print $1}') 2>/dev/null || true; \
+    fi
+
 # Bake S3's ICD-10-CM catalogue + embedding index into the image (execute-plan
 # §7, Phase 5): first-run cost is a few minutes; pay it at BUILD time, not per
 # request. Both steps are idempotent and need network (CMS zip + MiniLM model).

@@ -18,7 +18,7 @@ export default function Home() {
 
   return (
     <div className="flex h-[calc(100vh-2rem)] items-center justify-center">
-      <p className="text-slate-400">Loading…</p>
+      <p className="text-ink-400">Loading…</p>
     </div>
   );
 }

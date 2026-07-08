@@ -12,10 +12,10 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY package.json package-lock.json* ./
 RUN npm install --no-audit --no-fund
 
-COPY frontend/ ./
+COPY . ./
 # BACKEND_URL is baked at build time for the Next.js rewrite proxy. The compose
 # file sets it to http://backend:8000 (the internal service name).
 ARG BACKEND_URL=http://backend:8000

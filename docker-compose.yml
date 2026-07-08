@@ -4,7 +4,8 @@
 # sibling repos OUTSIDE this workspace (ai-ambient-scribe, phi-deidentifier,
 # auto-medical-coder, fhir-clinical-summarizer). Docker can only COPY files
 # inside the build context, so the backend service builds with
-#   context: ..          (=> clinical-ai-portfolio/, which contains all 5 repos)
+#   context: ..          (=> the parent folder containing all 5 sibling repos;
+#                             it can be named anything)
 #   dockerfile: clinical-documentation-assistant/infra/Dockerfile.backend
 #
 # Run from the workspace root:

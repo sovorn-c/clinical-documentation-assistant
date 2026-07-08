@@ -114,8 +114,9 @@ flowchart LR
                   └─────────────────────────────────────────────────────┘
 ```
 
-- The **canonical encounter** (stored in Postgres, shown in the UI) is
-  **un-redacted** — a clinician needs real identifiers to chart correctly.
+- The **canonical encounter** (stored in the DB — SQLite for dev, Postgres for
+  production — and shown in the UI) is **un-redacted** — a clinician needs
+  real identifiers to chart correctly.
 - Before any text crosses into a **cloud LLM call** — `suggest-codes` (S3) or
   `generate-referral` (new) — S2's `deidentify()` is applied to that copy.
 - M1's `generateDraft` is 100% local (mlx-whisper + ollama); no cloud LLM, so
@@ -195,7 +196,7 @@ preferred path so the demo does real transcription.
 
 | Variable | Used by | Purpose |
 |---|---|---|
-| `DATABASE_URL` | backend (Phase 1) | Postgres connection |
+| `DATABASE_URL` | backend (Phase 1) | DB connection — SQLite by default for local dev, Postgres in production. Also gates `assert_production_secrets`: any non-SQLite URL requires a real `JWT_SECRET` |
 | `JWT_SECRET` / `JWT_ALG` / `JWT_TTL_MINUTES` | backend (Phase 2) | Auth |
 | `API_KEY` | S1, S2, S3 (shared) | Cloud LLM key (LiteLLM) |
 | `LLM_MODEL` | S1 / clinical_core, S2 | Summarizer + referral + S2 optional pass |

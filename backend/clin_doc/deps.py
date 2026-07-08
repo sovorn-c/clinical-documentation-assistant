@@ -10,6 +10,7 @@ to exercise the full flow without mlx-whisper/ollama/catalogue/cloud-LLM.
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated, Protocol, TypeVar
 
 from fastapi import Depends
@@ -36,6 +37,16 @@ __all__ = [
 ]
 
 T = TypeVar("T", bound=object)
+
+# clinical-documentation-assistant/ — anchor for resolving relative env paths
+# (e.g. DIARIZER_MODEL_PATH) so they work regardless of the backend process's
+# actual CWD (dev.sh runs uvicorn from backend/, not the project root).
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _resolve_env_path(raw: str) -> str:
+    p = Path(raw)
+    return str(p if p.is_absolute() else (_PROJECT_ROOT / p).resolve())
 
 
 # --- engine protocols / callables -------------------------------------------
@@ -73,12 +84,34 @@ def get_scribe() -> ScribeLike:
     """
     from clin_doc.settings import get_settings
 
-    backend = get_settings().asr_backend.lower()
+    settings = get_settings()
+    backend = settings.asr_backend.lower()
+    diarizer_cfg = {}
+    if settings.diarizer_model_path and settings.diarizer_segmentation_model_path:
+        diarizer_cfg = {
+            "model_path": _resolve_env_path(settings.diarizer_model_path),
+            "segmentation_model_path": _resolve_env_path(
+                settings.diarizer_segmentation_model_path
+            ),
+            # Every encounter here is a 2-party clinician/patient consult, so
+            # pin the cluster count instead of sherpa-onnx's default (-1,
+            # auto-detect via threshold) — auto-detect tends to over-cluster
+            # short/noisy segments into many speaker ids, and roles.py only
+            # labels the first two as CLINICIAN/PATIENT (rest -> UNKNOWN).
+            "num_clusters": 2,
+            # Matches ai-ambient-scribe's own production config
+            # (scribe/api/app.py _PROD_CFG) and its PriMock57 bake-off eval
+            # (scripts/run_bakeoff_for_report.py) — shorter than sherpa-onnx's
+            # 0.3s default so brief interjections ("No.", "Yes.") still get
+            # their own speaker-change boundary instead of merging into the
+            # neighboring turn.
+            "min_duration_on": 0.1,
+        }
     cfg = {
         "audio_source": "file",
         "audio_path": "",
         "transcriber": {},
-        "diarizer": {},
+        "diarizer": diarizer_cfg,
         "llm": {},
         "draft_store": "memory",
     }

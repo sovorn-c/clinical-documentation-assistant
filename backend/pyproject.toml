@@ -35,10 +35,17 @@ dev = [
   "httpx>=0.27",
   "ruff>=0.5",
 ]
-# Cloud/demo ASR backend (Phase 0 Decision B). Local Apple-Silicon dev uses
-# M1's mlx-whisper instead (no extra dep here). Install with: pip install -e .[cloud]
+# Cloud/demo ASR backend (Phase 0 Decision B). Install with: uv sync --extra cloud
 cloud = [
   "faster-whisper>=1.0",
+]
+# Local Apple-Silicon dev ASR backend (Phase 0 Decision B). mlx-whisper/ollama
+# live behind ai-ambient-scribe's own optional "phase0" extra, not its base
+# install — request it explicitly. Install with: uv sync --extra local-mac
+# phase1 adds sherpa-onnx (real speaker diarization) — see DIARIZER_MODEL_PATH
+# / DIARIZER_SEGMENTATION_MODEL_PATH in .env.example.
+local-mac = [
+  "ai-ambient-scribe[phase0,phase1]",
 ]
 
 [tool.hatch.build.targets.wheel]

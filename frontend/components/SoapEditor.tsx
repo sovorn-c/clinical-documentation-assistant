@@ -65,8 +65,8 @@ export function SoapEditor({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">SOAP note</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="font-serif text-sm font-semibold text-ink-900">SOAP note</h3>
+          <p className="text-xs text-ink-500">
             v{note.version} · {note.source === "ai" ? "AI draft" : "human edit"}
             {note.provenance && (
               <>
@@ -76,12 +76,12 @@ export function SoapEditor({
           </p>
         </div>
         {aiNote && (
-          <label className="flex items-center gap-2 text-xs text-slate-600">
+          <label className="flex items-center gap-2 text-xs text-ink-600">
             <input
               type="checkbox"
               checked={showDiff}
               onChange={(e) => setShowDiff(e.target.checked)}
-              className="rounded border-slate-300"
+              className="rounded border-ink-300 text-teal-600 focus:ring-teal-500"
             />
             Diff vs AI draft
           </label>
@@ -89,27 +89,27 @@ export function SoapEditor({
       </div>
 
       {showDiff && diff ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-          <div className="grid grid-cols-2 border-b border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500">
+        <div className="overflow-hidden rounded-xl border border-ink-200 bg-ink-50">
+          <div className="grid grid-cols-2 border-b border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-500">
             <span>AI draft</span>
             <span>Your edits</span>
           </div>
-          <pre className="max-h-96 overflow-auto p-3 text-xs leading-relaxed">
+          <pre className="max-h-96 overflow-auto p-3 font-mono text-xs leading-relaxed">
             {diff.map((l, i) => (
               <div
                 key={i}
                 className={
                   l.type === "add"
-                    ? "bg-emerald-100/60 text-emerald-800"
+                    ? "bg-teal-100/60 text-teal-800"
                     : l.type === "remove"
-                      ? "bg-red-100/60 text-red-800 line-through"
-                      : "text-slate-600"
+                      ? "bg-brick-100/60 text-brick-800 line-through"
+                      : "text-ink-600"
                 }
               >
                 <span className="select-none pr-2 opacity-60">
                   {l.type === "add" ? "+" : l.type === "remove" ? "−" : " "}
                 </span>
-                {l.text || "\u00a0"}
+                {l.text || " "}
               </div>
             ))}
           </pre>
@@ -118,14 +118,14 @@ export function SoapEditor({
         <div className="grid gap-3 sm:grid-cols-2">
           {SOAP_SECTIONS.map((k) => (
             <label key={k} className="block space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">
                 {LABELS[k]}
               </span>
               <textarea
                 value={text[k]}
                 onChange={(e) => setText({ ...text, [k]: e.target.value })}
                 rows={4}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               />
             </label>
           ))}
@@ -136,12 +136,12 @@ export function SoapEditor({
         <button
           onClick={() => onSave(currentNote)}
           disabled={saving || !dirty || showDiff}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save edit"}
         </button>
-        {dirty && <span className="text-xs text-amber-600">Unsaved changes</span>}
-        {!dirty && !showDiff && <span className="text-xs text-slate-400">No changes</span>}
+        {dirty && <span className="text-xs text-ember-600">Unsaved changes</span>}
+        {!dirty && !showDiff && <span className="text-xs text-ink-400">No changes</span>}
       </div>
     </div>
   );
